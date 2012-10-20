@@ -48,6 +48,8 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
+// TODO: add unit tests for custom js inclusion
+
 @PrepareForTest(CompileMojo.class)
 @RunWith(PowerMockRunner.class)
 public class CompileMojoTest extends AbstractMojoTestCase {

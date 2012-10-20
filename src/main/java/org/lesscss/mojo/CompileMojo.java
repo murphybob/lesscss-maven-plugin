@@ -16,6 +16,7 @@ package org.lesscss.mojo;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 
@@ -65,6 +66,13 @@ public class CompileMojo extends AbstractLessCssMojo {
 	private boolean force;
 
 	/**
+	 * The location of a custom JavaScript file to include.
+	 * 
+	 * @parameter expression="${lesscss.customJs}"
+	 */
+	private File customJs;
+
+	/**
 	 * The location of the LESS JavasSript file.
 	 * 
 	 * @parameter
@@ -103,6 +111,21 @@ public class CompileMojo extends AbstractLessCssMojo {
 			lessCompiler.setCompress(compress);
 			lessCompiler.setEncoding(encoding);
 
+			String customJsString = "C:/Users/Metail/workspace/spritz/img/assets-sprite.js";
+			File customJs = new File( customJsString );
+			Long customJslastModified = new Long(0);
+			URL customJsURL;
+			if( customJs != null ){
+				customJslastModified = customJs.lastModified();
+				try {
+					customJsURL = customJs.toURI().toURL();
+				} catch (MalformedURLException e) {
+					throw new MojoExecutionException(
+							"Error while URLizing custom JavaScript", e);
+				}
+				lessCompiler.setCustomJs( customJsURL );
+			}
+
 			if (lessJs != null) {
 				try {
 					lessCompiler.setLessJs(lessJs.toURI().toURL());
@@ -125,8 +148,16 @@ public class CompileMojo extends AbstractLessCssMojo {
 
 				try {
 					LessSource lessSource = new LessSource(input);
-
-					if (output.lastModified() < lessSource.getLastModifiedIncludingImports()) {
+//					getLog().info( "output last modified: \t" + (new java.util.Date( output.lastModified() )).toString() );
+//					getLog().info( "less last modified: \t" + (new java.util.Date( lessSource.getLastModifiedIncludingImports() )).toString() );
+//					getLog().info( "sprite last modified: \t" + (new java.util.Date( customJslastModified )).toString() );
+					if( output.lastModified() < customJslastModified ){
+						force = true;
+					}
+					if (
+							output.lastModified() < lessSource.getLastModifiedIncludingImports() ||
+							force == true
+						) {
 						getLog().info("Compiling LESS source: " + file + "...");
 						lessCompiler.compile(lessSource, output, force);
 						buildContext.refresh(output);
