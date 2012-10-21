@@ -53,7 +53,7 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 @PrepareForTest(CompileMojo.class)
 @RunWith(PowerMockRunner.class)
 public class CompileMojoTest extends AbstractMojoTestCase {
-
+/*
 	private CompileMojo mojo;
 
 	private File sourceDirectory = new File("./source");
@@ -478,4 +478,5 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 	@After
 	public void tearDown() {
 	}
+*/
 }
