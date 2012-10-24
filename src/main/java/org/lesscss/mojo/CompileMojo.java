@@ -111,12 +111,12 @@ public class CompileMojo extends AbstractLessCssMojo {
 			lessCompiler.setCompress(compress);
 			lessCompiler.setEncoding(encoding);
 
-			if( customJs != null ){
+			if(customJs != null){
 				try {
-					lessCompiler.setCustomJs( customJs.toURI().toURL() );
+					lessCompiler.setCustomJs(customJs.toURI().toURL());
 				} catch (MalformedURLException e) {
 					throw new MojoExecutionException(
-							"Error while URLizing custom JavaScript", e);
+							"Error while loading custom JavaScript: " + customJs.getAbsolutePath(), e);
 				}
 			}
 			
@@ -140,13 +140,14 @@ public class CompileMojo extends AbstractLessCssMojo {
 					throw new MojoExecutionException("Cannot create output directory " + output.getParentFile());
 				}
 
-				if( customJs != null && output.lastModified() < customJs.lastModified() ){
+				Long outputLastModified = output.lastModified();
+				if(customJs != null && outputLastModified < customJs.lastModified()){
 					force = true;
 				}
 
 				try {
 					LessSource lessSource = new LessSource(input);
-					if ( force == true || output.lastModified() < lessSource.getLastModifiedIncludingImports() ) {
+					if (force == true || outputLastModified < lessSource.getLastModifiedIncludingImports()) {
 						getLog().info("Compiling LESS source: " + file + "...");
 						lessCompiler.compile(lessSource, output, force);
 						buildContext.refresh(output);

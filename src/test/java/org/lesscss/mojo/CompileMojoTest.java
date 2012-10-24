@@ -53,7 +53,7 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 @PrepareForTest(CompileMojo.class)
 @RunWith(PowerMockRunner.class)
 public class CompileMojoTest extends AbstractMojoTestCase {
-/*
+
 	private CompileMojo mojo;
 
 	private File sourceDirectory = new File("./source");
@@ -86,6 +86,15 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 
 	@Mock
 	private URL lessJsURL;
+
+	@Mock
+	private File customJs;
+
+	@Mock
+	private URI customJsURI;
+
+	@Mock
+	private URL customJsURL;
 
 	@Mock
 	private File input;
@@ -128,8 +137,8 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 
 		whenNew(LessSource.class).withArguments(input).thenReturn(lessSource);
 
-		when(output.lastModified()).thenReturn(1l);
-		when(lessSource.getLastModifiedIncludingImports()).thenReturn(2l);
+		when(output.lastModified()).thenReturn(2l);
+		when(lessSource.getLastModifiedIncludingImports()).thenReturn(3l);
 
 		mojo.execute();
 
@@ -157,7 +166,7 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 		verify(lessCompiler).compile(lessSource, output, false);
 	}
 
-	@Test
+ 	@Test
 	public void testExecutionNotModified() throws Exception {
 		files = new String[] { "less.less" };
 
@@ -284,7 +293,7 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 		whenNew(LessSource.class).withArguments(input).thenReturn(lessSource);
 
 		when(output.lastModified()).thenReturn(1l);
-		when(lessSource.getLastModifiedIncludingImports()).thenReturn(2l);
+		when(lessSource.getLastModifiedIncludingImports()).thenReturn(32l);
 
 		doThrow(new LessException(new Throwable())).when(lessCompiler).compile(lessSource, output, false);
 
@@ -308,6 +317,7 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 		verifyNew(LessSource.class).withArguments(input);
 
 		verify(output).lastModified();
+		verify(customJs).lastModified();
 		verify(lessSource).getLastModifiedIncludingImports();
 
 		verify(log).info("Compiling LESS source: less.less...");
@@ -336,8 +346,9 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 
 		whenNew(LessSource.class).withArguments(input).thenReturn(lessSource);
 
-		when(output.lastModified()).thenReturn(1l);
-		when(lessSource.getLastModifiedIncludingImports()).thenReturn(2l);
+		when(output.lastModified()).thenReturn(2l);
+		when(customJs.lastModified()).thenReturn(1l);
+		when(lessSource.getLastModifiedIncludingImports()).thenReturn(3l);
 
 		mojo.execute();
 
@@ -350,7 +361,7 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 		verify(lessCompiler).setCompress(false);
 		verify(lessCompiler).setEncoding(null);
 		verify(lessCompiler).setLessJs(lessJsURL);
-
+		
 		verifyNew(File.class).withArguments(sourceDirectory, "less.less");
 		verifyNew(File.class).withArguments(outputDirectory, "less.css");
 
@@ -379,6 +390,85 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 
 		when(lessJs.toURI()).thenReturn(lessJsURI);
 		when(lessJsURI.toURL()).thenThrow(new MalformedURLException());
+
+		mojo.execute();
+
+		verify(buildContext).newScanner(same(sourceDirectory), eq(true));
+		verify(scanner).setIncludes(same(includes));
+		verify(scanner).setExcludes(same(excludes));
+		verify(scanner).scan();
+
+		verifyNew(LessCompiler.class).withNoArguments();
+		verify(lessCompiler).setCompress(false);
+		verify(lessCompiler).setEncoding(null);
+	}
+
+	@Test
+	public void testExecutionWithCustomJs() throws Exception {
+		setVariableValueToObject(mojo, "customJs", customJs);
+
+		files = new String[] { "less.less" };
+
+		when(buildContext.newScanner(sourceDirectory, true)).thenReturn(scanner);
+		when(scanner.getIncludedFiles()).thenReturn(files);
+
+		whenNew(LessCompiler.class).withNoArguments().thenReturn(lessCompiler);
+
+		when(customJs.toURI()).thenReturn(customJsURI);
+		when(customJsURI.toURL()).thenReturn(customJsURL);
+
+		whenNew(File.class).withArguments(sourceDirectory, "less.less").thenReturn(input);
+		whenNew(File.class).withArguments(outputDirectory, "less.css").thenReturn(output);
+
+		when(output.getParentFile()).thenReturn(parent);
+		when(parent.exists()).thenReturn(true);
+
+		whenNew(LessSource.class).withArguments(input).thenReturn(lessSource);
+
+		when(output.lastModified()).thenReturn(1l);
+		when(customJs.lastModified()).thenReturn(3l);
+		when(lessSource.getLastModifiedIncludingImports()).thenReturn(2l);
+
+		mojo.execute();
+
+		verify(buildContext).newScanner(same(sourceDirectory), eq(true));
+		verify(scanner).setIncludes(same(includes));
+		verify(scanner).setExcludes(same(excludes));
+		verify(scanner).scan();
+
+		verifyNew(LessCompiler.class).withNoArguments();
+		verify(lessCompiler).setCompress(false);
+		verify(lessCompiler).setEncoding(null);
+		verify(lessCompiler).setCustomJs(customJsURL);
+
+		verifyNew(File.class).withArguments(sourceDirectory, "less.less");
+		verifyNew(File.class).withArguments(outputDirectory, "less.css");
+
+		verify(output).getParentFile();
+		verify(parent).exists();
+
+		verifyNew(LessSource.class).withArguments(input);
+
+		verify(output).lastModified();
+		verify(customJs).lastModified();
+
+		verify(log).info("Compiling LESS source: less.less...");
+		verify(lessCompiler).compile(lessSource, output, true);
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testExecutionMalformedURLExceptionWhenCustomJs() throws Exception {
+		setVariableValueToObject(mojo, "customJs", customJs);
+
+		files = new String[] { "less.less" };
+
+		when(buildContext.newScanner(sourceDirectory, true)).thenReturn(scanner);
+		when(scanner.getIncludedFiles()).thenReturn(files);
+
+		whenNew(LessCompiler.class).withNoArguments().thenReturn(lessCompiler);
+
+		when(customJs.toURI()).thenReturn(customJsURI);
+		when(customJsURI.toURL()).thenThrow(new MalformedURLException());
 
 		mojo.execute();
 
@@ -475,8 +565,8 @@ public class CompileMojoTest extends AbstractMojoTestCase {
 		verify(parent).mkdirs();
 	}
 
+
 	@After
 	public void tearDown() {
 	}
-*/
 }
