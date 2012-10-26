@@ -18,6 +18,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.net.URL;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.StringUtils;
@@ -69,7 +72,7 @@ public class CompileMojo extends AbstractLessCssMojo {
 	 * 
 	 * @parameter expression="${lesscss.customJs}"
 	 */
-	private File customJs;
+	private File[] customJsFiles;
 
 	/**
 	 * The location of the LESS JavasSript file.
@@ -95,7 +98,7 @@ public class CompileMojo extends AbstractLessCssMojo {
 			getLog().debug("excludes = " + Arrays.toString(excludes));
 			getLog().debug("force = " + force);
 			getLog().debug("lessJs = " + lessJs);
-			getLog().debug("customJs = " + customJs);
+			getLog().debug("customJs = " + Arrays.toString(customJsFiles));
 		}
 
 		String[] files = getIncludedFiles();
@@ -111,13 +114,19 @@ public class CompileMojo extends AbstractLessCssMojo {
 			lessCompiler.setCompress(compress);
 			lessCompiler.setEncoding(encoding);
 
-			if(customJs != null){
-				try {
-					lessCompiler.setCustomJs(customJs.toURI().toURL());
-				} catch (MalformedURLException e) {
-					throw new MojoExecutionException(
-							"Error while loading custom JavaScript: " + customJs.getAbsolutePath(), e);
+			Long customJsLastModified = 0l;
+			if(customJsFiles != null){
+				List<URL> customJsList = new ArrayList<URL>();
+				for(File customJsFile: customJsFiles){
+					try {
+						customJsList.add(customJsFile.toURI().toURL());
+						customJsLastModified = Math.max(customJsLastModified, customJsFile.lastModified());
+					} catch (MalformedURLException e) {
+						throw new MojoExecutionException(
+								"Error while loading custom JavaScript: " + customJsFile.getAbsolutePath(), e);
+					}					
 				}
+				lessCompiler.setCustomJs(customJsList);
 			}
 			
 			if (lessJs != null) {
@@ -141,7 +150,7 @@ public class CompileMojo extends AbstractLessCssMojo {
 				}
 
 				Long outputLastModified = output.lastModified();
-				if(customJs != null && outputLastModified < customJs.lastModified()){
+				if(customJsFiles != null && outputLastModified < customJsLastModified){
 					force = true;
 				}
 

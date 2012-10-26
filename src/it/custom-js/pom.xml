@@ -12,7 +12,9 @@
                 <artifactId>lesscss-maven-plugin</artifactId>
                 <version>@project.version@</version>
                 <configuration>
-                    <customJs>${project.basedir}/src/main/js/custom.js</customJs>
+                    <customJsFiles>
+                        <customJsFile>${project.basedir}/src/main/js/custom.js</customJsFile>
+                    </customJsFiles>
                 </configuration>
                 <executions>
                     <execution>
