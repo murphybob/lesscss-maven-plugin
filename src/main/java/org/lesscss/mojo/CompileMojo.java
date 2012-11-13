@@ -118,13 +118,19 @@ public class CompileMojo extends AbstractLessCssMojo {
 			if(customJsFiles != null){
 				List<URL> customJsList = new ArrayList<URL>();
 				for(File customJsFile: customJsFiles){
-					try {
-						customJsList.add(customJsFile.toURI().toURL());
-						customJsLastModified = Math.max(customJsLastModified, customJsFile.lastModified());
-					} catch (MalformedURLException e) {
-						throw new MojoExecutionException(
-								"Error while loading custom JavaScript: " + customJsFile.getAbsolutePath(), e);
-					}					
+					if( !customJsFile.canRead() ){
+						getLog().warn( "Failed to load custom JavaScript: " + customJsFile.getAbsolutePath() );
+						getLog().warn( "File does not exist or is unreadable." );
+					}
+					else{
+						try {
+							customJsList.add(customJsFile.toURI().toURL());
+							customJsLastModified = Math.max(customJsLastModified, customJsFile.lastModified());
+						} catch (MalformedURLException e) {
+							throw new MojoExecutionException(
+									"Error while loading custom JavaScript: " + customJsFile.getAbsolutePath(), e);
+						}
+					}
 				}
 				lessCompiler.setCustomJs(customJsList);
 			}
